@@ -1,5 +1,9 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
+/* ============================
+   MODELS
+============================ */
+
 export interface TextBox {
   id: string;
   x: number;
@@ -41,6 +45,10 @@ export interface Template {
   updatedAt: number;
 }
 
+/* ============================
+   DATABASE SCHEMA
+============================ */
+
 interface InkOraDB extends DBSchema {
   templates: {
     key: string;
@@ -54,191 +62,222 @@ interface InkOraDB extends DBSchema {
 
 let dbInstance: IDBPDatabase<InkOraDB> | null = null;
 
+/* ============================
+   INIT DATABASE
+============================ */
+
 export async function initDB(): Promise<IDBPDatabase<InkOraDB>> {
   if (dbInstance) return dbInstance;
-  
+
   dbInstance = await openDB<InkOraDB>('inkora-db', 2, {
-    upgrade(database, oldVersion, newVersion, transaction) {
-      // Create templates store if it doesn't exist
+    upgrade(database, oldVersion, _newVersion, transaction) {
       if (!database.objectStoreNames.contains('templates')) {
         database.createObjectStore('templates', { keyPath: 'id' });
       }
-      
-      // Create settings store if it doesn't exist
+
       if (!database.objectStoreNames.contains('settings')) {
         database.createObjectStore('settings');
       }
 
-      // Migration: Add timestamps to existing templates
+      // 🔁 MIGRATION: Add timestamps safely
       if (oldVersion < 2) {
-        const templateStore = transaction.objectStore('templates');
-        templateStore.openCursor().then(function cursorIterate(cursor) {
+        const store = transaction.objectStore('templates');
+
+        store.openCursor().then((cursor) => {
           if (!cursor) return;
+
           const template = cursor.value;
+
           if (!template.createdAt) {
-            template.createdAt = Date.now();
-            template.updatedAt = Date.now();
+            const now = Date.now();
+            template.createdAt = now;
+            template.updatedAt = now;
             cursor.update(template);
           }
-          return cursor.continue().then(cursorIterate);
+
+          cursor.continue();
         });
       }
     },
   });
-  
+
   return dbInstance;
 }
 
-// Template Operations
+/* ============================
+   TEMPLATE OPERATIONS
+============================ */
+
 export async function saveTemplate(template: Template): Promise<void> {
-  const database = await initDB();
-  
-  // Update timestamp
+  const db = await initDB();
   const now = Date.now();
-  const updatedTemplate = {
+
+  await db.put('templates', {
     ...template,
-    updatedAt: now,
     createdAt: template.createdAt || now,
-  };
-  
-  await database.put('templates', updatedTemplate);
+    updatedAt: now,
+  });
 }
 
 export async function getTemplate(id: string): Promise<Template | undefined> {
-  const database = await initDB();
-  return await database.get('templates', id);
+  const db = await initDB();
+  return db.get('templates', id);
 }
 
 export async function getAllTemplates(): Promise<Template[]> {
-  const database = await initDB();
-  const templates = await database.getAll('templates');
-  
-  // Sort by most recently updated
+  const db = await initDB();
+  const templates = await db.getAll('templates');
   return templates.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export async function deleteTemplate(id: string): Promise<void> {
-  const database = await initDB();
-  await database.delete('templates', id);
+  const db = await initDB();
+  await db.delete('templates', id);
 }
 
 export async function duplicateTemplate(id: string): Promise<Template> {
-  const database = await initDB();
-  const original = await database.get('templates', id);
-  
-  if (!original) {
-    throw new Error('Template not found');
-  }
-  
+  const db = await initDB();
+  const original = await db.get('templates', id);
+
+  if (!original) throw new Error('Template not found');
+
   const now = Date.now();
-  const duplicate: Template = {
+  const copy: Template = {
     ...original,
     id: `template_${now}`,
     name: `${original.name} (Copy)`,
     createdAt: now,
     updatedAt: now,
   };
-  
-  await database.put('templates', duplicate);
-  return duplicate;
+
+  await db.put('templates', copy);
+  return copy;
 }
 
 export async function updateTemplateName(id: string, name: string): Promise<void> {
-  const database = await initDB();
-  const template = await database.get('templates', id);
-  
-  if (template) {
-    template.name = name;
-    template.updatedAt = Date.now();
-    await database.put('templates', template);
-  }
+  const db = await initDB();
+  const template = await db.get('templates', id);
+
+  if (!template) return;
+
+  template.name = name;
+  template.updatedAt = Date.now();
+  await db.put('templates', template);
 }
 
 export async function getTemplateCount(): Promise<number> {
-  const database = await initDB();
-  return await database.count('templates');
+  const db = await initDB();
+  return db.count('templates');
 }
 
-// Text Box Operations
-export async function addTextBox(templateId: string, textBox: Omit<TextBox, 'id'>): Promise<void> {
-  const database = await initDB();
-  const template = await database.get('templates', templateId);
-  
-  if (template) {
-    const newBox: TextBox = {
-      ...textBox,
-      id: `text_${Date.now()}`,
-    };
-    template.textBoxes.push(newBox);
-    template.updatedAt = Date.now();
-    await database.put('templates', template);
-  }
+/* ============================
+   TEXT BOX OPERATIONS
+============================ */
+
+export async function addTextBox(
+  templateId: string,
+  textBox: Omit<TextBox, 'id'>
+): Promise<void> {
+  const db = await initDB();
+  const template = await db.get('templates', templateId);
+
+  if (!template) return;
+
+  template.textBoxes.push({
+    ...textBox,
+    id: `text_${Date.now()}`,
+  });
+
+  template.updatedAt = Date.now();
+  await db.put('templates', template);
 }
 
-export async function updateTextBox(templateId: string, boxId: string, updates: Partial<TextBox>): Promise<void> {
-  const database = await initDB();
-  const template = await database.get('templates', templateId);
-  
-  if (template) {
-    const index = template.textBoxes.findIndex(box => box.id === boxId);
-    if (index !== -1) {
-      template.textBoxes[index] = { ...template.textBoxes[index], ...updates };
-      template.updatedAt = Date.now();
-      await database.put('templates', template);
-    }
-  }
+export async function updateTextBox(
+  templateId: string,
+  boxId: string,
+  updates: Partial<TextBox>
+): Promise<void> {
+  const db = await initDB();
+  const template = await db.get('templates', templateId);
+
+  if (!template) return;
+
+  const index = template.textBoxes.findIndex(b => b.id === boxId);
+  if (index === -1) return;
+
+  template.textBoxes[index] = {
+    ...template.textBoxes[index],
+    ...updates,
+  };
+
+  template.updatedAt = Date.now();
+  await db.put('templates', template);
 }
 
 export async function deleteTextBox(templateId: string, boxId: string): Promise<void> {
-  const database = await initDB();
-  const template = await database.get('templates', templateId);
-  
-  if (template) {
-    template.textBoxes = template.textBoxes.filter(box => box.id !== boxId);
-    template.updatedAt = Date.now();
-    await database.put('templates', template);
-  }
+  const db = await initDB();
+  const template = await db.get('templates', templateId);
+
+  if (!template) return;
+
+  template.textBoxes = template.textBoxes.filter(b => b.id !== boxId);
+  template.updatedAt = Date.now();
+  await db.put('templates', template);
 }
 
-// Color Box Operations
-export async function addColorBox(templateId: string, colorBox: Omit<ColorBox, 'id'>): Promise<void> {
-  const database = await initDB();
-  const template = await database.get('templates', templateId);
-  
-  if (template) {
-    const newBox: ColorBox = {
-      ...colorBox,
-      id: `color_${Date.now()}`,
-    };
-    template.colorBoxes.push(newBox);
-    template.updatedAt = Date.now();
-    await database.put('templates', template);
-  }
+/* ============================
+   COLOR BOX OPERATIONS
+============================ */
+
+export async function addColorBox(
+  templateId: string,
+  colorBox: Omit<ColorBox, 'id'>
+): Promise<void> {
+  const db = await initDB();
+  const template = await db.get('templates', templateId);
+
+  if (!template) return;
+
+  template.colorBoxes.push({
+    ...colorBox,
+    id: `color_${Date.now()}`,
+  });
+
+  template.updatedAt = Date.now();
+  await db.put('templates', template);
 }
 
-export async function updateColorBox(templateId: string, boxId: string, updates: Partial<ColorBox>): Promise<void> {
-  const database = await initDB();
-  const template = await database.get('templates', templateId);
-  
-  if (template) {
-    const index = template.colorBoxes.findIndex(box => box.id === boxId);
-    if (index !== -1) {
-      template.colorBoxes[index] = { ...template.colorBoxes[index], ...updates };
-      template.updatedAt = Date.now();
-      await database.put('templates', template);
-    }
-  }
+export async function updateColorBox(
+  templateId: string,
+  boxId: string,
+  updates: Partial<ColorBox>
+): Promise<void> {
+  const db = await initDB();
+  const template = await db.get('templates', templateId);
+
+  if (!template) return;
+
+  const index = template.colorBoxes.findIndex(b => b.id === boxId);
+  if (index === -1) return;
+
+  template.colorBoxes[index] = {
+    ...template.colorBoxes[index],
+    ...updates,
+  };
+
+  template.updatedAt = Date.now();
+  await db.put('templates', template);
 }
 
 export async function deleteColorBox(templateId: string, boxId: string): Promise<void> {
-  const database = await initDB();
-  const template = await database.get('templates', templateId);
-  
-  if (template) {
-    template.colorBoxes = template.colorBoxes.filter(box => box.id !== boxId);
-    template.updatedAt = Date.now();
-    await database.put('templates', template);
-  }
+  const db = await initDB();
+  const template = await db.get('templates', templateId);
+
+  if (!template) return;
+
+  template.colorBoxes = template.colorBoxes.filter(b => b.id !== boxId);
+  template.updatedAt = Date.now();
+  await db.put('templates', template);
 }
 
 export async function deleteBox(templateId: string, boxId: string): Promise<void> {
@@ -246,73 +285,84 @@ export async function deleteBox(templateId: string, boxId: string): Promise<void
   await deleteColorBox(templateId, boxId);
 }
 
-// Settings Operations
+/* ============================
+   SETTINGS
+============================ */
+
 export async function saveSetting(key: string, value: any): Promise<void> {
-  const database = await initDB();
-  await database.put('settings', value, key);
+  const db = await initDB();
+  await db.put('settings', value, key);
 }
 
 export async function getSetting<T = any>(key: string): Promise<T | undefined> {
-  const database = await initDB();
-  return await database.get('settings', key);
+  const db = await initDB();
+  return db.get('settings', key);
 }
 
 export async function deleteSetting(key: string): Promise<void> {
-  const database = await initDB();
-  await database.delete('settings', key);
+  const db = await initDB();
+  await db.delete('settings', key);
 }
 
 export async function getAllSettings(): Promise<Record<string, any>> {
-  const database = await initDB();
-  const keys = await database.getAllKeys('settings');
-  const values = await database.getAll('settings');
-  
-  const settings: Record<string, any> = {};
-  keys.forEach((key, index) => {
-    settings[key as string] = values[index];
+  const db = await initDB();
+  const keys = await db.getAllKeys('settings');
+  const values = await db.getAll('settings');
+
+  const result: Record<string, any> = {};
+  keys.forEach((k, i) => {
+    result[k as string] = values[i];
   });
-  
-  return settings;
+
+  return result;
 }
 
-// Utility Functions
+/* ============================
+   UTILITIES
+============================ */
+
 export async function exportTemplates(): Promise<string> {
-  const templates = await getAllTemplates();
-  return JSON.stringify(templates, null, 2);
+  return JSON.stringify(await getAllTemplates(), null, 2);
 }
 
 export async function importTemplates(jsonData: string): Promise<number> {
-  const database = await initDB();
+  const db = await initDB();
   const templates: Template[] = JSON.parse(jsonData);
-  
-  let imported = 0;
-  for (const template of templates) {
-    // Generate new ID to avoid conflicts
-    template.id = `template_${Date.now()}_${imported}`;
-    template.createdAt = Date.now();
-    template.updatedAt = Date.now();
-    await database.put('templates', template);
-    imported++;
+
+  let count = 0;
+  for (const t of templates) {
+    const now = Date.now();
+    await db.put('templates', {
+      ...t,
+      id: `template_${now}_${count}`,
+      createdAt: now,
+      updatedAt: now,
+    });
+    count++;
   }
-  
-  return imported;
+
+  return count;
 }
 
 export async function clearAllData(): Promise<void> {
-  const database = await initDB();
-  await database.clear('templates');
-  await database.clear('settings');
+  const db = await initDB();
+  await db.clear('templates');
+  await db.clear('settings');
 }
 
-export async function getStorageSize(): Promise<{ templates: number; settings: number; total: number }> {
-  const database = await initDB();
-  
-  const templates = await database.getAll('templates');
-  const settings = await database.getAll('settings');
-  
+export async function getStorageSize(): Promise<{
+  templates: number;
+  settings: number;
+  total: number;
+}> {
+  const db = await initDB();
+
+  const templates = await db.getAll('templates');
+  const settings = await db.getAll('settings');
+
   const templatesSize = JSON.stringify(templates).length;
   const settingsSize = JSON.stringify(settings).length;
-  
+
   return {
     templates: templatesSize,
     settings: settingsSize,

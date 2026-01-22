@@ -134,50 +134,51 @@ export default function EditorPage() {
     }
     setSaving(false);
   };
-const handleGenerate = async () => {
-  console.log('🚀 GENERATE CLICKED');
-  
-  if (!template) {
-    alert('No template');
-    return;
-  }
 
-  if (template.textBoxes.length === 0) {
-    alert('Please add at least one text box first.');
-    return;
-  }
-
-  // Save template FIRST
-  setSaving(true);
-  try {
-    console.log('💾 Saving template:', template.id);
-    await saveTemplate({
-      ...template,
-      updatedAt: Date.now(),
-    });
+  const handleGenerate = async () => {
+    console.log('🚀 GENERATE CLICKED');
     
-    // Wait a bit for database
-    await new Promise(r => setTimeout(r, 200));
-    
-    // Verify it saved
-    const check = await getTemplate(template.id);
-    console.log('✅ Verified saved:', check);
-    
-    if (!check) {
-      throw new Error('Template not saved!');
+    if (!template) {
+      alert('No template');
+      return;
     }
-    
-    // Navigate
-    const url = `/generate/${template.id}`;
-    console.log('🔄 Navigating to:', url);
-    router.push(url);
-    
-  } catch (error) {
-    console.error('❌ Error:', error);
-    alert('Failed to save: ' + error);
-  }
-  setSaving(false);
-};
+
+    if (template.textBoxes.length === 0) {
+      alert('Please add at least one text box first.');
+      return;
+    }
+
+    // Save template FIRST
+    setSaving(true);
+    try {
+      console.log('💾 Saving template:', template.id);
+      await saveTemplate({
+        ...template,
+        updatedAt: Date.now(),
+      });
+      
+      // Wait a bit for database
+      await new Promise(r => setTimeout(r, 200));
+      
+      // Verify it saved
+      const check = await getTemplate(template.id);
+      console.log('✅ Verified saved:', check);
+      
+      if (!check) {
+        throw new Error('Template not saved!');
+      }
+      
+      // Navigate
+      const url = `/generate/${template.id}`;
+      console.log('🔄 Navigating to:', url);
+      router.push(url);
+      
+    } catch (error) {
+      console.error('❌ Error:', error);
+      alert('Failed to save: ' + error);
+    }
+    setSaving(false);
+  };
 
   const handleAddTextBox = (box: Omit<TextBox, 'id'>) => {
     if (!template) return;
@@ -292,27 +293,31 @@ const handleGenerate = async () => {
   const selectedColorBox = template.colorBoxes.find((b) => b.id === selectedBox);
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Canvas Area - LEFT */}
-      <div className="flex-1 flex flex-col">
-        {/* Toolbar */}
-        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+    <div className="flex flex-col md:flex-row h-screen bg-gray-50 dark:bg-gray-950">
+      {/* Canvas Area - LEFT (full width on mobile, left side on desktop) */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Toolbar - MOBILE RESPONSIVE */}
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-3 md:px-6 py-3 md:py-4">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            
+            {/* Template Name - Full width on mobile */}
+            <div className="flex items-center gap-3 w-full md:w-auto">
               <input
                 type="text"
                 value={template.name}
                 onChange={(e) => setTemplate({ ...template, name: e.target.value, updatedAt: Date.now() })}
-                className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg border-0 focus:ring-2 focus:ring-primary text-sm"
+                className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg border-0 focus:ring-2 focus:ring-primary text-sm w-full md:w-auto"
                 placeholder="Template name"
               />
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Mode Buttons - Responsive grid */}
+            <div className="grid grid-cols-3 md:flex items-center gap-2">
               <Button
                 variant={mode === 'select' ? 'primary' : 'secondary'}
                 size="sm"
                 onClick={() => setMode('select')}
+                className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
               >
                 Select
               </Button>
@@ -320,6 +325,7 @@ const handleGenerate = async () => {
                 variant={mode === 'text' ? 'primary' : 'secondary'}
                 size="sm"
                 onClick={() => setMode('text')}
+                className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
               >
                 Text Box
               </Button>
@@ -327,13 +333,20 @@ const handleGenerate = async () => {
                 variant={mode === 'color' ? 'primary' : 'secondary'}
                 size="sm"
                 onClick={() => setMode('color')}
+                className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
               >
                 Color Box
               </Button>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
+            {/* Action Buttons - Responsive */}
+            <div className="grid grid-cols-2 md:flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => router.push('/')}
+                className="hidden md:inline-flex"
+              >
                 Cancel
               </Button>
               <Button 
@@ -341,25 +354,31 @@ const handleGenerate = async () => {
                 size="sm" 
                 onClick={handleGenerate}
                 disabled={template.textBoxes.length === 0 || saving}
+                className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
               >
                 {saving ? 'Saving...' : 'Generate'}
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Template'}
+              <Button 
+                size="sm" 
+                onClick={handleSave} 
+                disabled={saving}
+                className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
+              >
+                {saving ? 'Saving...' : 'Save'}
               </Button>
             </div>
           </div>
 
-          {/* Mode Indicator */}
-          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+          {/* Mode Indicator - Smaller text on mobile */}
+          <div className="mt-2 text-xs md:text-sm text-gray-600 dark:text-gray-400 text-center md:text-left">
             {mode === 'select' && '👆 Click on a box to select and edit it'}
             {mode === 'text' && '✏️ Drag on canvas to create a text box'}
             {mode === 'color' && '🎨 Drag on canvas to create a color box'}
           </div>
         </div>
 
-        {/* Canvas */}
-        <div className="flex-1 overflow-auto p-6 flex items-center justify-center">
+        {/* Canvas - Responsive padding */}
+        <div className="flex-1 overflow-auto p-2 md:p-6 flex items-center justify-center">
           <TemplateCanvas
             template={template}
             mode={mode}
@@ -373,17 +392,17 @@ const handleGenerate = async () => {
         </div>
       </div>
 
-      {/* Properties Panel - RIGHT */}
-      <div className="w-96 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">Properties</h2>
+      {/* Properties Panel - RIGHT (bottom sheet on mobile, sidebar on desktop) */}
+      <div className="w-full md:w-96 bg-white dark:bg-gray-900 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-800 overflow-y-auto max-h-[50vh] md:max-h-full">
+        <div className="p-4 md:p-6">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h2 className="text-lg md:text-xl font-semibold">Properties</h2>
             {selectedBox && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedBox(null)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 min-h-[44px] min-w-[44px]"
               >
                 ✕
               </Button>

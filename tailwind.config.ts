@@ -1,4 +1,3 @@
-
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
@@ -43,6 +42,14 @@ const config: Config = {
           '0%': { transform: 'scale(0.9)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
+      },
+      // NEW: Mobile-friendly spacing
+      spacing: {
+        'touch': '44px', // Minimum touch target size (Apple/Google guidelines)
+      },
+      // NEW: Mobile-safe max widths
+      maxWidth: {
+        'mobile': '100vw',
       },
     },
   },

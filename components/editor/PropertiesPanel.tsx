@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { TextBox, ColorBox } from '@/lib/db';
+import { useState, useEffect, useRef } from 'react';
+import { Template, TextBox, ColorBox } from '@/lib/db';
 import { HexColorPicker } from 'react-colorful';
 import Button from '@/components/ui/Button';
 import ColorPickerPanel from '@/components/ui/ColorPickerPanel';
@@ -13,6 +13,9 @@ interface PropertiesPanelProps {
   onUpdateTextBox: (id: string, updates: Partial<TextBox>) => void;
   onUpdateColorBox: (id: string, updates: Partial<ColorBox>) => void;
   onDelete: () => void;
+  // NEW: Eyedropper integration
+  onActivateEyedropper?: (target: 'textColor' | 'fillColor' | 'fillColor2' | 'backgroundColor') => void;
+  isEyedropperActive?: boolean;
 }
 
 export default function PropertiesPanel({
@@ -22,7 +25,24 @@ export default function PropertiesPanel({
   onUpdateTextBox,
   onUpdateColorBox,
   onDelete,
+  onActivateEyedropper,
+  isEyedropperActive = false,
 }: PropertiesPanelProps) {
+  const [showTextColorPicker, setShowTextColorPicker] = useState(false);
+  const [showBgColorPicker, setShowBgColorPicker] = useState(false);
+  const [hasBackground, setHasBackground] = useState(!!textBox?.backgroundColor);
+  const [fillType, setFillType] = useState<'solid' | 'gradient'>(colorBox?.fillType || 'solid');
+
+  // Update hasBackground when textBox changes
+  useEffect(() => {
+    setHasBackground(!!textBox?.backgroundColor);
+  }, [textBox]);
+
+  // Update fillType when colorBox changes
+  useEffect(() => {
+    setFillType(colorBox?.fillType || 'solid');
+  }, [colorBox]);
+
   if (!selectedBox) {
     return (
       <div className="flex items-center justify-center h-64 text-center p-6">
@@ -41,10 +61,6 @@ export default function PropertiesPanel({
 
   // TEXT BOX PROPERTIES
   if (textBox) {
-    const [showTextColorPicker, setShowTextColorPicker] = useState(false);
-    const [showBgColorPicker, setShowBgColorPicker] = useState(false);
-    const [hasBackground, setHasBackground] = useState(!!textBox.backgroundColor);
-
     return (
       <div className="space-y-6">
         {/* Header */}
@@ -175,41 +191,15 @@ export default function PropertiesPanel({
           </div>
         </div>
 
-        {/* Text Color */}
-        <div>
-          <label className="block text-sm font-semibold mb-2">Text Color</label>
-          <div className="relative">
-            <button
-              onClick={() => setShowTextColorPicker(!showTextColorPicker)}
-              className="w-full h-12 rounded-lg border-2 border-gray-300 dark:border-gray-700 hover:border-primary transition-colors flex items-center justify-center"
-              style={{ backgroundColor: textBox.color }}
-            >
-              <span className="text-xs font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                {textBox.color}
-              </span>
-            </button>
-            {showTextColorPicker && (
-              <div className="absolute top-14 left-0 z-50 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-2xl border-2 border-gray-200 dark:border-gray-700">
-                <HexColorPicker
-                  color={textBox.color}
-                  onChange={(color) => onUpdateTextBox(textBox.id, { color })}
-                />
-                <input
-                  type="text"
-                  value={textBox.color}
-                  onChange={(e) => onUpdateTextBox(textBox.id, { color: e.target.value })}
-                  className="mt-3 w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-mono text-center"
-                />
-                <button
-                  onClick={() => setShowTextColorPicker(false)}
-                  className="mt-3 w-full px-3 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:opacity-90"
-                >
-                  Done
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Text Color with Eyedropper */}
+        <ColorPickerPanel
+          color={textBox.color}
+          onChange={(color) => onUpdateTextBox(textBox.id, { color })}
+          label="Text Color"
+          showEyeDropper={true}
+          onActivateCanvasEyedropper={() => onActivateEyedropper?.('textColor')}
+          isEyedropperActive={isEyedropperActive}
+        />
 
         {/* Background Toggle */}
         <div>
@@ -244,40 +234,14 @@ export default function PropertiesPanel({
         {/* Background Color & Opacity */}
         {hasBackground && (
           <>
-            <div>
-              <label className="block text-sm font-semibold mb-2">Background Color</label>
-              <div className="relative">
-                <button
-                  onClick={() => setShowBgColorPicker(!showBgColorPicker)}
-                  className="w-full h-12 rounded-lg border-2 border-gray-300 dark:border-gray-700 hover:border-primary transition-colors flex items-center justify-center"
-                  style={{ backgroundColor: textBox.backgroundColor || '#FFFFFF' }}
-                >
-                  <span className="text-xs font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
-                    {textBox.backgroundColor || '#FFFFFF'}
-                  </span>
-                </button>
-                {showBgColorPicker && (
-                  <div className="absolute top-14 left-0 z-50 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-2xl border-2 border-gray-200 dark:border-gray-700">
-                    <HexColorPicker
-                      color={textBox.backgroundColor || '#FFFFFF'}
-                      onChange={(color) => onUpdateTextBox(textBox.id, { backgroundColor: color })}
-                    />
-                    <input
-                      type="text"
-                      value={textBox.backgroundColor || '#FFFFFF'}
-                      onChange={(e) => onUpdateTextBox(textBox.id, { backgroundColor: e.target.value })}
-                      className="mt-3 w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-mono text-center"
-                    />
-                    <button
-                      onClick={() => setShowBgColorPicker(false)}
-                      className="mt-3 w-full px-3 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:opacity-90"
-                    >
-                      Done
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <ColorPickerPanel
+              color={textBox.backgroundColor || '#FFFFFF'}
+              onChange={(color) => onUpdateTextBox(textBox.id, { backgroundColor: color })}
+              label="Background Color"
+              showEyeDropper={true}
+              onActivateCanvasEyedropper={() => onActivateEyedropper?.('backgroundColor')}
+              isEyedropperActive={isEyedropperActive}
+            />
 
             <div>
               <label className="block text-sm font-semibold mb-2">
@@ -301,8 +265,6 @@ export default function PropertiesPanel({
 
   // COLOR BOX PROPERTIES
   if (colorBox) {
-    const [fillType, setFillType] = useState<'solid' | 'gradient'>(colorBox.fillType || 'solid');
-
     const updateFillType = (type: 'solid' | 'gradient') => {
       setFillType(type);
       onUpdateColorBox(colorBox.id, {
@@ -347,13 +309,15 @@ export default function PropertiesPanel({
           </div>
         </div>
 
-        {/* Color Pickers */}
+        {/* Color Pickers with Eyedropper */}
         {fillType === 'solid' ? (
           <ColorPickerPanel
             color={colorBox.fillColor}
             onChange={(color) => onUpdateColorBox(colorBox.id, { fillColor: color })}
             label="Fill Color"
             showEyeDropper={true}
+            onActivateCanvasEyedropper={() => onActivateEyedropper?.('fillColor')}
+            isEyedropperActive={isEyedropperActive}
           />
         ) : (
           <>
@@ -362,6 +326,8 @@ export default function PropertiesPanel({
               onChange={(color) => onUpdateColorBox(colorBox.id, { fillColor: color })}
               label="Gradient Start"
               showEyeDropper={true}
+              onActivateCanvasEyedropper={() => onActivateEyedropper?.('fillColor')}
+              isEyedropperActive={isEyedropperActive}
             />
             
             <ColorPickerPanel
@@ -369,6 +335,8 @@ export default function PropertiesPanel({
               onChange={(color) => onUpdateColorBox(colorBox.id, { fillColor2: color })}
               label="Gradient End"
               showEyeDropper={true}
+              onActivateCanvasEyedropper={() => onActivateEyedropper?.('fillColor2')}
+              isEyedropperActive={isEyedropperActive}
             />
 
             {/* Gradient Preview */}
@@ -403,7 +371,7 @@ export default function PropertiesPanel({
         {/* Tip */}
         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
           <p className="text-xs text-blue-600 dark:text-blue-400">
-            💡 <strong>Tip:</strong> Use the eye dropper to pick colors from your image for seamless blending!
+            💡 <strong>Tip:</strong> Use "Pick from Image" to sample colors directly from your template!
           </p>
         </div>
       </div>

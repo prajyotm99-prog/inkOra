@@ -20,6 +20,10 @@ export default function EditorPage() {
   const [selectedBox, setSelectedBox] = useState<string | null>(null);
   const [isLoadingRef, setIsLoadingRef] = useState(false);
 
+  // NEW: Eyedropper state
+  const [eyedropperMode, setEyedropperMode] = useState(false);
+  const [eyedropperTarget, setEyedropperTarget] = useState<'textColor' | 'fillColor' | 'fillColor2' | 'backgroundColor' | null>(null);
+
   useEffect(() => {
     if (!isLoadingRef) {
       loadTemplate();
@@ -250,6 +254,48 @@ export default function EditorPage() {
     setSelectedBox(null);
   };
 
+  // NEW: Activate eyedropper
+  const handleActivateEyedropper = (target: 'textColor' | 'fillColor' | 'fillColor2' | 'backgroundColor') => {
+    console.log('🎨 Eyedropper activated for:', target);
+    setEyedropperMode(true);
+    setEyedropperTarget(target);
+    setMode('select'); // Switch to select mode for clarity
+  };
+
+  // NEW: Handle eyedropper color pick
+  const handleEyedropperPick = (hexColor: string) => {
+    console.log('🎨 Color picked:', hexColor, 'Target:', eyedropperTarget);
+
+    if (!selectedBox || !eyedropperTarget) {
+      console.warn('No selected box or target');
+      setEyedropperMode(false);
+      setEyedropperTarget(null);
+      return;
+    }
+
+    const selectedTextBox = template?.textBoxes.find(b => b.id === selectedBox);
+    const selectedColorBox = template?.colorBoxes.find(b => b.id === selectedBox);
+
+    // Apply color based on target
+    if (selectedTextBox && eyedropperTarget === 'textColor') {
+      handleUpdateTextBox(selectedBox, { color: hexColor });
+      console.log('✅ Applied to text color');
+    } else if (selectedTextBox && eyedropperTarget === 'backgroundColor') {
+      handleUpdateTextBox(selectedBox, { backgroundColor: hexColor });
+      console.log('✅ Applied to background color');
+    } else if (selectedColorBox && eyedropperTarget === 'fillColor') {
+      handleUpdateColorBox(selectedBox, { fillColor: hexColor });
+      console.log('✅ Applied to fill color');
+    } else if (selectedColorBox && eyedropperTarget === 'fillColor2') {
+      handleUpdateColorBox(selectedBox, { fillColor2: hexColor });
+      console.log('✅ Applied to gradient end color');
+    }
+
+    // Reset eyedropper mode
+    setEyedropperMode(false);
+    setEyedropperTarget(null);
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Delete' && selectedBox) {
@@ -257,6 +303,11 @@ export default function EditorPage() {
       } else if (e.key === 'Escape') {
         setSelectedBox(null);
         setMode('select');
+        // NEW: Cancel eyedropper on Escape
+        if (eyedropperMode) {
+          setEyedropperMode(false);
+          setEyedropperTarget(null);
+        }
       } else if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
         handleSave();
@@ -265,7 +316,7 @@ export default function EditorPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedBox, template]);
+  }, [selectedBox, template, eyedropperMode]);
 
   if (loading) {
     return (
@@ -318,6 +369,7 @@ export default function EditorPage() {
                 size="sm"
                 onClick={() => setMode('select')}
                 className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
+                disabled={eyedropperMode}
               >
                 Select
               </Button>
@@ -326,6 +378,7 @@ export default function EditorPage() {
                 size="sm"
                 onClick={() => setMode('text')}
                 className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
+                disabled={eyedropperMode}
               >
                 Text Box
               </Button>
@@ -334,6 +387,7 @@ export default function EditorPage() {
                 size="sm"
                 onClick={() => setMode('color')}
                 className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
+                disabled={eyedropperMode}
               >
                 Color Box
               </Button>
@@ -346,6 +400,7 @@ export default function EditorPage() {
                 size="sm" 
                 onClick={() => router.push('/')}
                 className="hidden md:inline-flex"
+                disabled={eyedropperMode}
               >
                 Cancel
               </Button>
@@ -353,7 +408,7 @@ export default function EditorPage() {
                 variant="secondary" 
                 size="sm" 
                 onClick={handleGenerate}
-                disabled={template.textBoxes.length === 0 || saving}
+                disabled={template.textBoxes.length === 0 || saving || eyedropperMode}
                 className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
               >
                 {saving ? 'Saving...' : 'Generate'}
@@ -361,7 +416,7 @@ export default function EditorPage() {
               <Button 
                 size="sm" 
                 onClick={handleSave} 
-                disabled={saving}
+                disabled={saving || eyedropperMode}
                 className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
               >
                 {saving ? 'Saving...' : 'Save'}
@@ -371,9 +426,10 @@ export default function EditorPage() {
 
           {/* Mode Indicator - Smaller text on mobile */}
           <div className="mt-2 text-xs md:text-sm text-gray-600 dark:text-gray-400 text-center md:text-left">
-            {mode === 'select' && '👆 Click on a box to select and edit it'}
-            {mode === 'text' && '✏️ Drag on canvas to create a text box'}
-            {mode === 'color' && '🎨 Drag on canvas to create a color box'}
+            {eyedropperMode && '🎨 Eyedropper active - Tap on the image to pick a color'}
+            {!eyedropperMode && mode === 'select' && '👆 Click on a box to select and edit it'}
+            {!eyedropperMode && mode === 'text' && '✏️ Drag on canvas to create a text box'}
+            {!eyedropperMode && mode === 'color' && '🎨 Drag on canvas to create a color box'}
           </div>
         </div>
 
@@ -388,6 +444,8 @@ export default function EditorPage() {
             onAddColorBox={handleAddColorBox}
             onUpdateTextBox={handleUpdateTextBox}
             onUpdateColorBox={handleUpdateColorBox}
+            eyedropperMode={eyedropperMode}
+            onEyedropperPick={handleEyedropperPick}
           />
         </div>
       </div>
@@ -416,6 +474,8 @@ export default function EditorPage() {
             onUpdateTextBox={handleUpdateTextBox}
             onUpdateColorBox={handleUpdateColorBox}
             onDelete={handleDeleteBox}
+            onActivateEyedropper={handleActivateEyedropper}
+            isEyedropperActive={eyedropperMode}
           />
         </div>
       </div>

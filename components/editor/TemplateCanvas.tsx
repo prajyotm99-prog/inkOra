@@ -2,6 +2,11 @@
 
 import { useRef, useEffect, useState } from 'react';
 import { Template, TextBox, ColorBox } from '@/lib/db';
+import {
+  clientToCanvasCoordinates,
+  sampleColorWithContext,
+  isPointInCanvas,
+} from '@/lib/colorUtils';
 
 interface TemplateCanvasProps {
   template: Template;
@@ -12,6 +17,9 @@ interface TemplateCanvasProps {
   onAddColorBox: (box: Omit<ColorBox, 'id'>) => void;
   onUpdateTextBox: (id: string, updates: Partial<TextBox>) => void;
   onUpdateColorBox: (id: string, updates: Partial<ColorBox>) => void;
+  // NEW: Eyedropper props
+  eyedropperMode?: boolean;
+  onEyedropperPick?: (hexColor: string) => void;
 }
 
 type ResizeHandle = 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'e' | 'w';
@@ -25,6 +33,8 @@ export default function TemplateCanvas({
   onAddColorBox,
   onUpdateTextBox,
   onUpdateColorBox,
+  eyedropperMode = false,
+  onEyedropperPick,
 }: TemplateCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,9 +49,16 @@ export default function TemplateCanvas({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
 
+  // NEW: Eyedropper preview state
+  const [eyedropperPreview, setEyedropperPreview] = useState<{
+    x: number;
+    y: number;
+    color: string;
+  } | null>(null);
+
   useEffect(() => {
     drawCanvas();
-  }, [template, selectedBox, isDrawing, currentPoint, isDragging, isResizing]);
+  }, [template, selectedBox, isDrawing, currentPoint, isDragging, isResizing, eyedropperMode, eyedropperPreview]);
 
   useEffect(() => {
     const updateScale = () => {
@@ -93,7 +110,7 @@ export default function TemplateCanvas({
         ctx.lineWidth = 2 / scale;
         ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-        if (isSelected && mode === 'select') {
+        if (isSelected && mode === 'select' && !eyedropperMode) {
           drawResizeHandles(ctx, box.x, box.y, box.width, box.height);
         }
       });
@@ -143,13 +160,60 @@ export default function TemplateCanvas({
         ctx.strokeText(box.fieldName, box.x, labelY);
         ctx.fillText(box.fieldName, box.x, labelY);
 
-        if (isSelected && mode === 'select') {
+        if (isSelected && mode === 'select' && !eyedropperMode) {
           drawResizeHandles(ctx, box.x, box.y, box.width, box.height);
         }
       });
 
+      // NEW: Draw eyedropper preview
+      if (eyedropperMode && eyedropperPreview) {
+        const { x, y, color } = eyedropperPreview;
+        
+        // Draw crosshair
+        ctx.save();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 4;
+        
+        // Vertical line
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, template.height);
+        ctx.stroke();
+        
+        // Horizontal line
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(template.width, y);
+        ctx.stroke();
+        
+        // Center circle
+        ctx.beginPath();
+        ctx.arc(x, y, 15, 0, Math.PI * 2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        
+        // Inner dot
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        
+        ctx.restore();
+      }
+
+      // NEW: Draw eyedropper overlay when active
+      if (eyedropperMode && !eyedropperPreview) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(99, 102, 241, 0.1)';
+        ctx.fillRect(0, 0, template.width, template.height);
+        ctx.restore();
+      }
+
       // Draw current drawing
-      if (isDrawing && mode !== 'select') {
+      if (isDrawing && mode !== 'select' && !eyedropperMode) {
         const width = currentPoint.x - startPoint.x;
         const height = currentPoint.y - startPoint.y;
 
@@ -197,16 +261,40 @@ export default function TemplateCanvas({
     });
   };
 
-  // FIXED: Get point from both mouse and touch events
   const getCanvasPoint = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: ((clientX - rect.left) / rect.width) * template.width,
-      y: ((clientY - rect.top) / rect.height) * template.height,
-    };
+    return clientToCanvasCoordinates(clientX, clientY, canvas, scale);
+  };
+
+  // NEW: Handle eyedropper click
+  const handleEyedropperClick = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !onEyedropperPick) return;
+
+    const point = getCanvasPoint(clientX, clientY);
+
+    // Validate point is within canvas
+    if (!isPointInCanvas(point.x, point.y, canvas)) {
+      console.warn('Click outside canvas bounds');
+      return;
+    }
+
+    // Sample color
+    const result = sampleColorWithContext(canvas, point.x, point.y);
+    if (!result) {
+      console.error('Failed to sample color');
+      return;
+    }
+
+    console.log(`Sampled color at (${point.x}, ${point.y}): ${result.hex}`);
+
+    // Call parent callback with HEX color
+    onEyedropperPick(result.hex);
+
+    // Clear preview
+    setEyedropperPreview(null);
   };
 
   const getResizeHandle = (point: { x: number; y: number }, box: any): ResizeHandle | null => {
@@ -233,8 +321,13 @@ export default function TemplateCanvas({
     return null;
   };
 
-  // FIXED: Unified start handler for mouse and touch
   const handleStart = (clientX: number, clientY: number) => {
+    // NEW: Priority to eyedropper mode
+    if (eyedropperMode) {
+      handleEyedropperClick(clientX, clientY);
+      return;
+    }
+
     const point = getCanvasPoint(clientX, clientY);
 
     if (mode === 'select' && selectedBox) {
@@ -305,8 +398,25 @@ export default function TemplateCanvas({
     }
   };
 
-  // FIXED: Unified move handler for mouse and touch
   const handleMove = (clientX: number, clientY: number) => {
+    // NEW: Show eyedropper preview
+    if (eyedropperMode) {
+      const point = getCanvasPoint(clientX, clientY);
+      const canvas = canvasRef.current;
+      
+      if (canvas && isPointInCanvas(point.x, point.y, canvas)) {
+        const result = sampleColorWithContext(canvas, point.x, point.y);
+        if (result) {
+          setEyedropperPreview({
+            x: point.x,
+            y: point.y,
+            color: result.hex,
+          });
+        }
+      }
+      return;
+    }
+
     const point = getCanvasPoint(clientX, clientY);
 
     if (isDragging && selectedBox) {
@@ -377,8 +487,13 @@ export default function TemplateCanvas({
     }
   };
 
-  // FIXED: Unified end handler
   const handleEnd = () => {
+    // NEW: Clear eyedropper preview
+    if (eyedropperMode) {
+      setEyedropperPreview(null);
+      return;
+    }
+
     if (isDragging) {
       setIsDragging(false);
     } else if (isResizing) {
@@ -421,7 +536,6 @@ export default function TemplateCanvas({
     }
   };
 
-  // Mouse event handlers
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     handleStart(e.clientX, e.clientY);
@@ -436,7 +550,6 @@ export default function TemplateCanvas({
     handleEnd();
   };
 
-  // FIXED: Touch event handlers
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const touch = e.touches[0];
@@ -455,6 +568,9 @@ export default function TemplateCanvas({
   };
 
   const getCursor = () => {
+    // NEW: Eyedropper cursor
+    if (eyedropperMode) return 'crosshair';
+    
     if (mode === 'select') {
       if (isDragging) return 'move';
       if (isResizing) {
@@ -472,6 +588,13 @@ export default function TemplateCanvas({
 
   return (
     <div ref={containerRef} className="relative inline-block">
+      {/* NEW: Eyedropper instruction overlay */}
+      {eyedropperMode && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-primary text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium animate-fade-in">
+          🎨 Tap anywhere on the image to pick a color
+        </div>
+      )}
+
       <canvas
         ref={canvasRef}
         width={template.width}
@@ -483,6 +606,7 @@ export default function TemplateCanvas({
           setIsDrawing(false);
           setIsDragging(false);
           setIsResizing(false);
+          setEyedropperPreview(null);
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -491,6 +615,7 @@ export default function TemplateCanvas({
           setIsDrawing(false);
           setIsDragging(false);
           setIsResizing(false);
+          setEyedropperPreview(null);
         }}
         className="border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg touch-none"
         style={{

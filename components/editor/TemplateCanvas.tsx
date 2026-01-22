@@ -102,7 +102,6 @@ export default function TemplateCanvas({
       template.textBoxes.forEach((box) => {
         const isSelected = selectedBox === box.id;
         
-        // Draw background if exists
         if (box.backgroundColor) {
           ctx.fillStyle = box.backgroundColor;
           ctx.globalAlpha = box.backgroundOpacity || 1;
@@ -110,12 +109,10 @@ export default function TemplateCanvas({
           ctx.globalAlpha = 1;
         }
         
-        // Border
         ctx.strokeStyle = isSelected ? '#4A90E2' : '#4A90E250';
         ctx.lineWidth = 2 / scale;
         ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-        // Placeholder text
         ctx.save();
         ctx.font = `${box.fontWeight} ${box.fontSize}px ${box.fontFamily}`;
         ctx.fillStyle = box.color + '80';
@@ -137,7 +134,6 @@ export default function TemplateCanvas({
         ctx.fillText(box.fieldName, textX, textY);
         ctx.restore();
 
-        // Field label above box
         const labelFontSize = Math.max(14, Math.min(template.width / 50, 20));
         ctx.fillStyle = '#FFFFFF';
         ctx.strokeStyle = '#000000';
@@ -201,14 +197,15 @@ export default function TemplateCanvas({
     });
   };
 
-  const getCanvasPoint = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // FIXED: Get point from both mouse and touch events
+  const getCanvasPoint = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
     return {
-      x: ((e.clientX - rect.left) / rect.width) * template.width,
-      y: ((e.clientY - rect.top) / rect.height) * template.height,
+      x: ((clientX - rect.left) / rect.width) * template.width,
+      y: ((clientY - rect.top) / rect.height) * template.height,
     };
   };
 
@@ -236,8 +233,9 @@ export default function TemplateCanvas({
     return null;
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const point = getCanvasPoint(e);
+  // FIXED: Unified start handler for mouse and touch
+  const handleStart = (clientX: number, clientY: number) => {
+    const point = getCanvasPoint(clientX, clientY);
 
     if (mode === 'select' && selectedBox) {
       const selectedTextBox = template.textBoxes.find(b => b.id === selectedBox);
@@ -307,8 +305,9 @@ export default function TemplateCanvas({
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const point = getCanvasPoint(e);
+  // FIXED: Unified move handler for mouse and touch
+  const handleMove = (clientX: number, clientY: number) => {
+    const point = getCanvasPoint(clientX, clientY);
 
     if (isDragging && selectedBox) {
       const selectedTextBox = template.textBoxes.find(b => b.id === selectedBox);
@@ -378,7 +377,8 @@ export default function TemplateCanvas({
     }
   };
 
-  const handleMouseUp = () => {
+  // FIXED: Unified end handler
+  const handleEnd = () => {
     if (isDragging) {
       setIsDragging(false);
     } else if (isResizing) {
@@ -421,6 +421,39 @@ export default function TemplateCanvas({
     }
   };
 
+  // Mouse event handlers
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    handleStart(e.clientX, e.clientY);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    handleMove(e.clientX, e.clientY);
+  };
+
+  const handleMouseUp = () => {
+    handleEnd();
+  };
+
+  // FIXED: Touch event handlers
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    handleStart(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    handleMove(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    handleEnd();
+  };
+
   const getCursor = () => {
     if (mode === 'select') {
       if (isDragging) return 'move';
@@ -451,7 +484,15 @@ export default function TemplateCanvas({
           setIsDragging(false);
           setIsResizing(false);
         }}
-        className="border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={() => {
+          setIsDrawing(false);
+          setIsDragging(false);
+          setIsResizing(false);
+        }}
+        className="border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg touch-none"
         style={{
           cursor: getCursor(),
           width: `${template.width * scale}px`,

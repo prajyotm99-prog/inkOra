@@ -63,16 +63,16 @@ export default function GeneratePage() {
     );
   }
 
-  if (template.textBoxes.length === 0) {
+  if (template.textBoxes.length === 0 && template.colorBoxes.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center max-w-md">
           <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">⚠️</span>
           </div>
-          <h2 className="text-xl font-semibold mb-2">No Text Fields</h2>
+          <h2 className="text-xl font-semibold mb-2">No Fields Added</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            This template has no text boxes. Add at least one text box to generate invitations.
+            This template has no text boxes or color boxes. Add at least one text box to generate invitations.
           </p>
           <div className="flex gap-3 justify-center">
             <Button variant="secondary" onClick={() => router.push('/')}>
@@ -123,7 +123,7 @@ export default function GeneratePage() {
       <div className="container mx-auto px-4 py-6">
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mb-6">
           <h2 className="text-lg font-medium mb-4">Choose Generation Mode</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={`grid ${template.textBoxes.length === 0 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-4`}>
             
             {/* Single Generation */}
             <button
@@ -147,15 +147,16 @@ export default function GeneratePage() {
               </div>
             </button>
 
-            {/* Bulk Generation */}
-            <button
-              onClick={() => setMode('bulk')}
-              className={`p-6 rounded-xl border-2 transition-all text-left ${
-                mode === 'bulk'
-                  ? 'border-primary bg-primary/5'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
-              }`}
-            >
+            {/* Bulk Generation - Only show if template has text boxes */}
+            {template.textBoxes.length > 0 && (
+              <button
+                onClick={() => setMode('bulk')}
+                className={`p-6 rounded-xl border-2 transition-all text-left ${
+                  mode === 'bulk'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-primary/50'
+                }`}
+              >
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <span className="text-2xl">📊</span>
@@ -168,6 +169,7 @@ export default function GeneratePage() {
                 </div>
               </div>
             </button>
+            )}
           </div>
         </div>
 

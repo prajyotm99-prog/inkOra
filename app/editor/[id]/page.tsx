@@ -139,7 +139,7 @@ export default function EditorPage() {
     setSaving(false);
   };
 
-  const handleGenerate = async () => {
+const handleGenerate = async () => {
     console.log('🚀 GENERATE CLICKED');
     
     if (!template) {
@@ -147,8 +147,9 @@ export default function EditorPage() {
       return;
     }
 
-    if (template.textBoxes.length === 0) {
-      alert('Please add at least one text box first.');
+    // Check if template has at least one text box OR color box
+    if (template.textBoxes.length === 0 && template.colorBoxes.length === 0) {
+      alert('Please add at least one text box or color box first.');
       return;
     }
 
@@ -408,7 +409,7 @@ export default function EditorPage() {
                 variant="secondary" 
                 size="sm" 
                 onClick={handleGenerate}
-                disabled={template.textBoxes.length === 0 || saving || eyedropperMode}
+                disabled={(template.textBoxes.length === 0 && template.colorBoxes.length === 0) || saving || eyedropperMode}
                 className="w-full md:w-auto min-h-[44px] text-xs md:text-sm"
               >
                 {saving ? 'Saving...' : 'Generate'}

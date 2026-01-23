@@ -116,11 +116,14 @@ export default function BulkGenerationForm({ template }: BulkGenerationFormProps
     }
   };
 
-  const handleGenerate = async () => {
-    const unmapped = template.textBoxes.filter((box) => !mapping[box.id]);
-    if (unmapped.length > 0) {
-      alert(`Please map all fields: ${unmapped.map((b) => b.fieldName).join(', ')}`);
-      return;
+    const handleGenerate = async () => {
+    // Only check mapping if there are text boxes
+      if (template.textBoxes.length > 0) {
+        const unmapped = template.textBoxes.filter((box) => !mapping[box.id]);
+        if (unmapped.length > 0) {
+          alert(`Please map all fields: ${unmapped.map((b) => b.fieldName).join(', ')}`);
+          return;
+      }
     }
 
     setGenerating(true);
@@ -208,12 +211,10 @@ export default function BulkGenerationForm({ template }: BulkGenerationFormProps
 
   return (
     <div className="space-y-6">
-      {/* Upload Section */}
-      {csvData.length === 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
-          <h2 className="text-xl font-medium mb-4">Upload CSV or Excel File</h2>
-          
-          <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-12 text-center hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all">
+      {/* Upload Section - Only show if template has text boxes */}
+      {csvData.length === 0 && template.textBoxes.length > 0 && (
+        <div className="text-center">
+          <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-12 hover:border-primary transition-colors">
             <input
               type="file"
               accept=".csv,.xlsx,.xls"
@@ -243,6 +244,26 @@ export default function BulkGenerationForm({ template }: BulkGenerationFormProps
               <li>✓ Column names matching your fields will auto-map</li>
             </ul>
           </div>
+        </div>
+      )}
+
+      {/* Color-Only Template Message */}
+      {template.textBoxes.length === 0 && template.colorBoxes.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-8 text-center">
+          <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">🎨</span>
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Color Overlay Template</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            This template uses only color overlays and doesn't require bulk data input.
+            Use the <strong>Single Generation</strong> mode to download your invitation.
+          </p>
+          <Button
+            onClick={() => router.push(`/generate/${template.id}`)}
+            variant="secondary"
+          >
+            ← Back to Single Generation
+          </Button>
         </div>
       )}
 

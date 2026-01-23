@@ -121,103 +121,134 @@ export default function SingleGenerationForm({ template }: SingleGenerationFormP
     }
   };
 
+    // Check if template has only color boxes (no text boxes)
+  const hasOnlyColorBoxes = template.textBoxes.length === 0 && template.colorBoxes.length > 0;
+
+  // Auto-generate preview for color-only templates
+  useEffect(() => {
+    if (hasOnlyColorBoxes && !previewImage) {
+      handleGenerate();
+    }
+  }, [hasOnlyColorBoxes]);
+
   return (
     <div className="space-y-6">
-      {/* Form */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-medium">Enter Details</h2>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input
-              type="checkbox"
-              checked={livePreview}
-              onChange={(e) => setLivePreview(e.target.checked)}
-              className="rounded border-gray-300 text-primary focus:ring-primary"
-            />
-            <span className="text-gray-600 dark:text-gray-400">Live Preview</span>
-          </label>
-        </div>
-        
-        <div className="space-y-4">
-          {template.textBoxes.map((box) => (
-            <div key={box.id} className="relative">
-                <label className="block text-sm font-medium mb-2">
-                    {box.fieldName}
-                </label>
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        value={formData[box.id] || ''}
-                        onChange={(e) => setFormData({ ...formData, [box.id]: e.target.value })}
-                        onFocus={async () => {
-                        if (!suggestions[box.id]) {
-                            const sug = await getFieldSuggestions(box.fieldName);
-                            setSuggestions({ ...suggestions, [box.id]: sug });
-                        }
-                        setShowSuggestions(box.id);
-                        }}
-                        className="flex-1 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border-0 focus:ring-2 focus:ring-primary"
-                        placeholder={`Enter ${box.fieldName}`}
-                    />
-                    <button
-                    onClick={async () => {
-                    if (!suggestions[box.id]) {
-                        const sug = await getFieldSuggestions(box.fieldName);
-                        setSuggestions({ ...suggestions, [box.id]: sug });
-                    }
-                    setShowSuggestions(showSuggestions === box.id ? null : box.id);
-                    }}
-                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                    title="AI Suggestions"
-                >
-                    💡
-                </button>
-                </div>
+      {/* Show form only if there are text boxes */}
+      {!hasOnlyColorBoxes && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-medium">Enter Details</h2>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={livePreview}
+                onChange={(e) => setLivePreview(e.target.checked)}
+                className="rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-gray-600 dark:text-gray-400">Live Preview</span>
+            </label>
+          </div>
+          
+          <div className="space-y-4">
+            {template.textBoxes.map((box) => (
+              <div key={box.id} className="relative">
+                  <label className="block text-sm font-medium mb-2">
+                      {box.fieldName}
+                  </label>
+                  <div className="flex gap-2">
+                      <input
+                          type="text"
+                          value={formData[box.id] || ''}
+                          onChange={(e) => setFormData({ ...formData, [box.id]: e.target.value })}
+                          onFocus={async () => {
+                          if (!suggestions[box.id]) {
+                              const sug = await getFieldSuggestions(box.fieldName);
+                              setSuggestions({ ...suggestions, [box.id]: sug });
+                          }
+                          setShowSuggestions(box.id);
+                          }}
+                          className="flex-1 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border-0 focus:ring-2 focus:ring-primary"
+                          placeholder={`Enter ${box.fieldName}`}
+                      />
+                      <button
+                      onClick={async () => {
+                      if (!suggestions[box.id]) {
+                          const sug = await getFieldSuggestions(box.fieldName);
+                          setSuggestions({ ...suggestions, [box.id]: sug });
+                      }
+                      setShowSuggestions(showSuggestions === box.id ? null : box.id);
+                      }}
+                      className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      title="AI Suggestions"
+                  >
+                      💡
+                  </button>
+                  </div>
 
-                {/* Suggestions Dropdown */}
-                {showSuggestions === box.id && suggestions[box.id] && (
-                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg overflow-hidden">
-                    <div className="p-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                        💡 AI Suggestions - Click to use
-                    </p>
-                    </div>
-                    {suggestions[box.id].map((suggestion, idx) => (
-                    <button
-                        key={idx}
-                        onClick={() => {
-                        setFormData({ ...formData, [box.id]: suggestion });
-                        setShowSuggestions(null);
-                        }}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm"
-                    >
-                        {suggestion}
-                    </button>
-                    ))}
-                </div>
-                )}
+                  {/* Suggestions Dropdown */}
+                  {showSuggestions === box.id && suggestions[box.id] && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg overflow-hidden">
+                      <div className="p-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                          💡 AI Suggestions - Click to use
+                      </p>
+                      </div>
+                      {suggestions[box.id].map((suggestion, idx) => (
+                      <button
+                          key={idx}
+                          onClick={() => {
+                          setFormData({ ...formData, [box.id]: suggestion });
+                          setShowSuggestions(null);
+                          }}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm"
+                      >
+                          {suggestion}
+                      </button>
+                      ))}
+                  </div>
+                  )}
+              </div>
+              ))}
+          </div>
+
+          {!livePreview && (
+            <Button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="w-full mt-6"
+            >
+              {generating ? 'Generating...' : 'Generate Preview'}
+            </Button>
+          )}
+
+          {livePreview && (
+            <p className="text-sm text-gray-500 mt-4 text-center">
+              Preview updates automatically as you type
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Info message for color-only templates */}
+      {hasOnlyColorBoxes && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-6">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-xl">🎨</span>
             </div>
-            ))}
+            <div>
+              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                Color Overlay Template
+              </h3>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                This template uses color overlays only. Your invitation is ready to download!
+              </p>
+            </div>
+          </div>
         </div>
+      )}
 
-        {!livePreview && (
-          <Button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="w-full mt-6"
-          >
-            {generating ? 'Generating...' : 'Generate Preview'}
-          </Button>
-        )}
-
-        {livePreview && (
-          <p className="text-sm text-gray-500 mt-4 text-center">
-            Preview updates automatically as you type
-          </p>
-        )}
-      </div>
-
-      {/* Preview */}
+      {/* Preview - Show for both text box and color-only templates */}
       {previewImage && (
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
           <h2 className="text-xl font-medium mb-4">Preview</h2>
@@ -242,8 +273,16 @@ export default function SingleGenerationForm({ template }: SingleGenerationFormP
           <p className="text-xs text-gray-500 mt-3 text-center">
             File will be named: {template.textBoxes.length > 0 && formData[template.textBoxes[0].id] 
               ? `${formData[template.textBoxes[0].id].replace(/[^a-zA-Z0-9]/g, '_')}.jpg`
-              : 'invitation.jpg'}
+              : `invitation_${Date.now()}.jpg`}
           </p>
+        </div>
+      )}
+
+      {/* Loading state */}
+      {generating && !previewImage && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-12 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Generating preview...</p>
         </div>
       )}
     </div>

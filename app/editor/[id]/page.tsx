@@ -7,6 +7,7 @@ import { compressImage, createThumbnail } from '@/lib/imageProcessor';
 import Button from '@/components/ui/Button';
 import TemplateCanvas from '@/components/editor/TemplateCanvas';
 import PropertiesPanel from '@/components/editor/PropertiesPanel';
+import { getErrorMessage, toast } from '@/lib/notifications';
 
 export default function EditorPage() {
   const params = useParams();
@@ -46,7 +47,7 @@ export default function EditorPage() {
       
       if (!imageData) {
         console.error('No image data in sessionStorage');
-        alert('No image found. Please upload again.');
+        toast.error('No image found. Please upload again.');
         router.push('/');
         setLoading(false);
         setIsLoadingRef(false);
@@ -66,7 +67,7 @@ export default function EditorPage() {
         
         img.onerror = (error) => {
           console.error('Image load error:', error);
-          alert('Failed to load image');
+          toast.error('Failed to load image');
           router.push('/');
           setLoading(false);
           setIsLoadingRef(false);
@@ -101,7 +102,7 @@ export default function EditorPage() {
         img.src = compressed;
       } catch (error) {
         console.error('Template creation error:', error);
-        alert('Error processing image: ' + error);
+        toast.error('Error processing image: ' + error);
         router.push('/');
         setLoading(false);
         setIsLoadingRef(false);
@@ -114,7 +115,7 @@ export default function EditorPage() {
         setTemplate(existing);
       } else {
         console.log('Template not found');
-        alert('Template not found');
+        toast.error('Template not found');
         router.push('/');
       }
       setLoading(false);
@@ -131,10 +132,10 @@ export default function EditorPage() {
         ...template,
         updatedAt: Date.now(),
       });
-      alert('Template saved successfully!');
+      toast.success('Template saved successfully!');
     } catch (error) {
       console.error('Save error:', error);
-      alert('Failed to save template');
+      toast.error('Failed to save template' + getErrorMessage(error));
     }
     setSaving(false);
   };
@@ -143,13 +144,13 @@ const handleGenerate = async () => {
     console.log('🚀 GENERATE CLICKED');
     
     if (!template) {
-      alert('No template');
+      toast.error('No template');
       return;
     }
 
     // Check if template has at least one text box OR color box
     if (template.textBoxes.length === 0 && template.colorBoxes.length === 0) {
-      alert('Please add at least one text box or color box first.');
+      toast.warning('Please add at least one text box or color box first.');
       return;
     }
 
@@ -180,7 +181,7 @@ const handleGenerate = async () => {
       
     } catch (error) {
       console.error('❌ Error:', error);
-      alert('Failed to save: ' + error);
+      toast.error('Failed to save: ' + getErrorMessage(error));
     }
     setSaving(false);
   };

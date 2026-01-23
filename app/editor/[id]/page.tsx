@@ -343,7 +343,10 @@ const handleGenerate = async () => {
 
   const selectedTextBox = template.textBoxes.find((b) => b.id === selectedBox);
   const selectedColorBox = template.colorBoxes.find((b) => b.id === selectedBox);
-
+  // Add input validation
+  const validateTemplateName = (name: string): string => {
+  return name.trim().slice(0, 100); // Max 100 chars
+};
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-50 dark:bg-gray-950">
       {/* Canvas Area - LEFT (full width on mobile, left side on desktop) */}
@@ -357,7 +360,8 @@ const handleGenerate = async () => {
               <input
                 type="text"
                 value={template.name}
-                onChange={(e) => setTemplate({ ...template, name: e.target.value, updatedAt: Date.now() })}
+                onChange={(e) => setTemplate({ ...template, name: validateTemplateName(e.target.value), updatedAt: Date.now()
+})}
                 className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg border-0 focus:ring-2 focus:ring-primary text-sm w-full md:w-auto"
                 placeholder="Template name"
               />

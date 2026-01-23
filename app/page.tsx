@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAllTemplates, deleteTemplate, Template } from '@/lib/db';
 import Button from '@/components/ui/Button';
+import { toast, getErrorMessage } from '@/lib/notifications';
 
 export default function HomePage() {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -50,7 +51,7 @@ export default function HomePage() {
         
         reader.onerror = (error) => {
           console.error('FileReader error:', error);
-          alert('Error reading file');
+          toast.error('Error reading file');
           document.body.removeChild(loadingMessage);
         };
 
@@ -61,7 +62,7 @@ export default function HomePage() {
           // Verify it's a valid image
           if (!imageData.startsWith('data:image/')) {
             console.error('Invalid image data');
-            alert('Invalid image file');
+            toast.error('Invalid image file');
             document.body.removeChild(loadingMessage);
             return;
           }
@@ -80,12 +81,12 @@ export default function HomePage() {
               router.push('/editor/new');
             } else {
               console.error('Failed to store image');
-              alert('Failed to process image. Try a smaller file.');
+              toast.error('Failed to process image. Try a smaller file.');
               document.body.removeChild(loadingMessage);
             }
           } catch (storageError) {
             console.error('SessionStorage error:', storageError);
-            alert('Image too large for browser storage. Try a smaller file.');
+            toast.error('Image too large for browser storage. Try a smaller file.');
             document.body.removeChild(loadingMessage);
           }
         };
@@ -93,7 +94,7 @@ export default function HomePage() {
         reader.readAsDataURL(file);
       } catch (error) {
         console.error('Upload error:', error);
-        alert('Error uploading image');
+        toast.error('Error uploading image');
         document.body.removeChild(loadingMessage);
       }
     };

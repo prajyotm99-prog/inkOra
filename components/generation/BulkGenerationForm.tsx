@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { Template } from '@/lib/db';
 import { createZipFromImages, downloadZip } from '@/lib/zipGenerator';
 import Button from '@/components/ui/Button';
+import { useRouter } from 'next/navigation';
 
 interface BulkGenerationFormProps {
   template: Template;
@@ -16,6 +17,7 @@ interface CSVRow {
 }
 
 export default function BulkGenerationForm({ template }: BulkGenerationFormProps) {
+  const router = useRouter();
   const [csvData, setCSVData] = useState<CSVRow[]>([]);
   const [csvHeaders, setCSVHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});

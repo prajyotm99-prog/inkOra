@@ -6,6 +6,7 @@ import { getTemplate, Template } from '@/lib/db';
 import Button from '@/components/ui/Button';
 import SingleGenerationForm from '@/components/generation/SingleGenerationForm';
 import BulkGenerationForm from '@/components/generation/BulkGenerationForm';
+import { toast } from '@/lib/notifications';
 
 export default function GeneratePage() {
   const params = useParams();
@@ -29,7 +30,7 @@ export default function GeneratePage() {
       setTemplate(temp);
     } else {
       console.error('Template not found');
-      alert('Template not found');
+      toast.error('Template not found');
       router.push('/');
     }
     setLoading(false);

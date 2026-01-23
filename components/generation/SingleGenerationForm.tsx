@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Template } from '@/lib/db';
 import Button from '@/components/ui/Button';
 import { getFieldSuggestions } from '@/lib/aiSuggestions';
+import { toast, getErrorMessage } from '@/lib/notifications';
 
 interface SingleGenerationFormProps {
   template: Template;
@@ -76,7 +77,7 @@ export default function SingleGenerationForm({ template }: SingleGenerationFormP
       img.src = template.imageData;
     } catch (error) {
       console.error('Generation error:', error);
-      alert('Failed to generate invitation');
+      toast.error('Failed to generate invitation' +  getErrorMessage(error));
       setGenerating(false);
     }
   };
@@ -114,10 +115,11 @@ export default function SingleGenerationForm({ template }: SingleGenerationFormP
           title: 'Invitation',
         });
       } else {
-        alert('Sharing not supported. Use download instead.');
+        toast.info('Sharing not supported. Use download instead.');
       }
     } catch (error) {
       console.error('Share error:', error);
+      toast.error('Failed to share: ' + getErrorMessage(error));
     }
   };
 

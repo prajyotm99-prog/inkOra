@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { Template } from '@/lib/db';
 import { createZipFromImages, downloadZip } from '@/lib/zipGenerator';
 import Button from '@/components/ui/Button';
+import { toast, getErrorMessage } from '@/lib/notifications';
 import { useRouter } from 'next/navigation';
 
 interface BulkGenerationFormProps {
@@ -30,7 +31,7 @@ export default function BulkGenerationForm({ template }: BulkGenerationFormProps
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('File too large. Maximum 5MB.');
+      toast.error('File too large. Maximum 5MB.');
       return;
     }
 
@@ -45,12 +46,12 @@ export default function BulkGenerationForm({ template }: BulkGenerationFormProps
           const validData = data.filter((row) => Object.values(row).some((val) => val));
 
           if (validData.length === 0) {
-            alert('File is empty');
+            toast.error('CSV file is empty. Please upload a file with data.');
             return;
           }
 
           if (validData.length > 1000) {
-            alert('Maximum 1000 rows allowed');
+            toast.warning('Maximum 1000 rows allowed. Only first 1000 will be processed.');
             return;
           }
 
@@ -70,7 +71,7 @@ export default function BulkGenerationForm({ template }: BulkGenerationFormProps
         },
         error: (error) => {
           console.error('CSV parse error:', error);
-          alert('Failed to parse CSV file');
+          toast.error('Failed to parse CSV file' + getErrorMessage(error));
         },
       });
     } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
@@ -85,12 +86,12 @@ export default function BulkGenerationForm({ template }: BulkGenerationFormProps
           const jsonData = XLSX.utils.sheet_to_json(worksheet) as CSVRow[];
 
           if (jsonData.length === 0) {
-            alert('Excel file is empty');
+            toast.error('Excel file is empty. Please upload a file with data.');
             return;
           }
 
           if (jsonData.length > 1000) {
-            alert('Maximum 1000 rows allowed');
+            toast.warning('Maximum 1000 rows allowed. Only first 1000 will be processed.');
             return;
           }
 
@@ -109,12 +110,12 @@ export default function BulkGenerationForm({ template }: BulkGenerationFormProps
           setMapping(autoMapping);
         } catch (error) {
           console.error('Excel parse error:', error);
-          alert('Failed to parse Excel file');
+          toast.error('Failed to parse Excel file' + getErrorMessage(error));
         }
       };
       reader.readAsBinaryString(file);
     } else {
-      alert('Please upload a CSV or Excel file');
+      toast.error('Please upload a CSV or Excel file');
     }
   };
 
@@ -123,7 +124,7 @@ export default function BulkGenerationForm({ template }: BulkGenerationFormProps
       if (template.textBoxes.length > 0) {
         const unmapped = template.textBoxes.filter((box) => !mapping[box.id]);
         if (unmapped.length > 0) {
-          alert(`Please map all fields: ${unmapped.map((b) => b.fieldName).join(', ')}`);
+          toast.error(`Please map all fields: ${unmapped.map((b) => b.fieldName).join(', ')}`);
           return;
       }
     }
@@ -201,12 +202,12 @@ export default function BulkGenerationForm({ template }: BulkGenerationFormProps
       const zipBlob = await createZipFromImages(images);
       const filename = `inkora_invitations_${new Date().toISOString().split('T')[0]}.zip`;
       downloadZip(zipBlob, filename);
-
+      toast.success(`Successfully generated ${csvData.length} invitations!`);
       setCompleted(true);
       setGenerating(false);
     } catch (error) {
       console.error('Generation error:', error);
-      alert('Failed to generate invitations: ' + error);
+      toast.error('Failed to generate invitations: ' + getErrorMessage(error));
       setGenerating(false);
     }
   };

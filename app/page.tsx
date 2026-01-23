@@ -39,7 +39,7 @@ export default function HomePage() {
         alert('File too large. Maximum 10MB.');
         return;
       }
-
+      
       // Show loading state
       const loadingMessage = document.createElement('div');
       loadingMessage.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';

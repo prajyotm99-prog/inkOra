@@ -90,3 +90,37 @@
 .animate-slide-out {
   animation: slide-out 0.3s ease-in;
 }
+
+/* Toast Notifications - Enhanced Animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+/* Mobile responsive toasts */
+@media (max-width: 640px) {
+  #inkora-toast {
+    left: 1rem !important;
+    right: 1rem !important;
+    min-width: auto !important;
+    max-width: none !important;
+    top: 4rem !important;
+  }
+}

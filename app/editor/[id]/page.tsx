@@ -434,6 +434,15 @@ const handleGenerate = async () => {
           </div>
         </div>
 
+          {/* Template Type Indicator */}
+          {template.textBoxes.length === 0 && template.colorBoxes.length > 0 && (
+            <div className="mt-2 px-3 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <p className="text-xs text-purple-700 dark:text-purple-300 text-center">
+                🎨 Color Overlay Template - Ready for instant download
+              </p>
+            </div>
+          )}
+
         {/* Canvas - Responsive padding */}
         <div className="flex-1 overflow-auto p-2 md:p-6 flex items-center justify-center">
           <TemplateCanvas

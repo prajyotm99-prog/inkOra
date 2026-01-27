@@ -1,36 +1,219 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+🎨 InkOra — Smart Invitation Personalization Platform
 
-## Getting Started
+InkOra is a modern, web-based invitation customization platform that lets users design once and generate hundreds of personalized invitations effortlessly — directly in the browser.
 
-First, run the development server:
+🔗 Live App: https://ink-ora.vercel.app/
 
-```bash
+✨ What is InkOra?
+
+InkOra allows users to:
+
+Upload an invitation image
+
+Mark editable text areas and cover old text using color boxes
+
+Customize fonts, colors, alignment, opacity
+
+Generate single or bulk invitations (CSV-based)
+
+Download or share the final images
+
+Do everything offline-first, with no backend required
+
+Designed for:
+
+Weddings 💍
+
+Events 🎉
+
+Corporate invites 🏢
+
+Bulk WhatsApp sharing 📲
+
+🚀 Core Features
+🖼 Template Creation
+
+Upload JPG / PNG images
+
+Automatic compression for share-friendly size
+
+Thumbnail generation
+
+Local storage using IndexedDB
+
+✏️ Text Boxes
+
+Draw text boxes on the image canvas
+
+Font family, size, weight, alignment
+
+Text color + background color + opacity
+
+Instant live preview
+
+🎨 Color Boxes (Cover Old Text)
+
+Draw filled boxes to hide existing text
+
+Solid & gradient fills
+
+Color picker with eyedropper
+
+Seamless blending with original design
+
+🧠 Smart Editor UX
+
+Click to select & edit instantly
+
+Properties panel auto-opens on selection
+
+Undo-friendly interactions
+
+Minimal, premium dark/light UI
+
+📄 Single Generation
+
+Fill values manually
+
+Live preview
+
+Download image
+
+Share via device share sheet
+
+📊 Bulk Generation (CSV)
+
+Upload CSV (up to 1000 rows)
+
+Preview headers & rows
+
+Map CSV columns to template fields
+
+Progress tracking
+
+ZIP download of all generated invitations
+
+📦 Download & Share
+
+Download individual images
+
+Download ZIP for bulk generation
+
+Share generated images or ZIP
+
+Share the InkOra app link directly
+
+🌗 Theme Support
+
+Dark / Light mode toggle
+
+System theme detection
+
+Minimalist, premium UI styling
+
+🧩 Tech Stack
+
+Framework: Next.js (App Router)
+
+Language: TypeScript
+
+Styling: Tailwind CSS
+
+State & Storage: IndexedDB (idb)
+
+Image Processing: Canvas API
+
+CSV Parsing: Client-side
+
+Deployment: Vercel
+
+No backend. No database server.
+Everything runs securely in the browser.
+
+🖥 Run InkOra Locally
+Prerequisites
+
+Node.js 18+
+
+npm / pnpm / yarn
+
+Steps
+# Clone the repo
+git clone https://github.com/prajyotm99-prog/inkOra.git
+cd inkora
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Open 👉 http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+🌍 Deployment
 
-## Learn More
+InkOra is deployed on Vercel.
 
-To learn more about Next.js, take a look at the following resources:
+Automatic builds from main branch
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Optimized for Next.js
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Free domain used:
+👉 https://ink-ora.vercel.app/
 
-## Deploy on Vercel
+You can deploy your own fork instantly via Vercel.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+📱 Mobile Friendly
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Works on mobile browsers
+
+Touch-optimized canvas interactions
+
+Progressive Web App ready
+
+Offline-first behavior
+
+🛠 Project Structure (Simplified)
+app/
+ ├─ page.tsx            → Home
+ ├─ editor/[id]         → Template editor
+ ├─ generate/[id]       → Single / Bulk generation
+ ├─ about               → About page
+components/
+ ├─ editor              → Canvas & properties
+ ├─ generation          → Forms & previews
+ ├─ layout              → Header, theme toggle
+lib/
+ ├─ db.ts               → IndexedDB logic
+ ├─ imageProcessor.ts   → Canvas rendering
+ ├─ zipGenerator.ts     → ZIP creation
+
+🧠 Product Philosophy
+
+InkOra is built with:
+
+Zero friction
+
+No learning curve
+
+Professional output
+
+Privacy-first (no uploads to servers)
+
+Design once → generate infinitely.
+
+🧑‍💻 Author
+
+Built with ❤️ by Prajyot
+(Initials can be branded inside the app before final release)
+
+⭐ Feedback & Contributions
+
+Feature ideas welcome
+
+UX improvements encouraged
+
+Fork & experiment freely
+
+If you like the project, ⭐ the repo and share InkOra 🚀
